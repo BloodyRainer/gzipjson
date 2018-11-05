@@ -28,6 +28,7 @@ func init() {
 	}
 }
 
+// Encodes the given reference to JSON and compresses it if the size exceeds 1400 Bytes.
 func Compress(w io.Writer, v interface{}) (bool, error) {
 	return CompressWitMinSize(w, v, defaultMinSize)
 }
@@ -47,6 +48,7 @@ func CompressWitMinSize(w io.Writer, v interface{}, minSize int) (bool, error) {
 	return gwc.compressed, nil
 }
 
+// Encodes the given reference to JSON and compresses it if the size exceeds the given minSize value of bytes.
 func newGzipWriteCloser(w io.Writer, minSize int) *GzipWriteCloser {
 
 	ms := defaultMinSize
@@ -86,7 +88,7 @@ func (gwc *GzipWriteCloser) Write(b []byte) (int, error) {
 }
 
 func (gwc *GzipWriteCloser) Close() error {
-	// Gzip was not triggered (content too small)
+	// gzip was not triggered (content too small)
 	if gwc.gw == nil {
 		return gwc.doNotGzip()
 	}
@@ -107,7 +109,7 @@ func (gwc *GzipWriteCloser) doNotGzip() error {
 		n, err := gwc.Writer.Write(gwc.buf)
 
 		if err == nil && n < len(gwc.buf) {
-			err = errors.Wrap(io.ErrShortWrite, errors.New("doNotGzip: Writer.Write wrote less bytes than the size of the buffer"))
+			err = errors.Wrap(io.ErrShortWrite, errors.New("wrote less bytes than the size of the buffer"))
 		}
 
 		return err
