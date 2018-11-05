@@ -1,4 +1,4 @@
-module gzipjson
+module github.com/bloodyrainer/gzipjson
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
