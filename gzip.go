@@ -5,11 +5,10 @@ import (
 	"encoding/json"
 	"github.com/juju/errors"
 	"io"
+	"sync"
 )
 
-const (
-	DefaultMinSize = 1400
-)
+const defaultMinSize = 1400
 
 type GzipWriteCloser struct {
 	io.Writer
@@ -19,11 +18,21 @@ type GzipWriteCloser struct {
 	compressed     bool
 }
 
-func Compress(w io.Writer, v interface{}) (bool, error) {
-	return CompressWitMinhSize(w, v, DefaultMinSize)
+var gzipWriterPool *sync.Pool
+
+func init() {
+	gzipWriterPool = &sync.Pool {
+		New: func() interface{} {
+			return gzip.NewWriter(nil)
+		},
+	}
 }
 
-func CompressWitMinhSize(w io.Writer, v interface{}, minSize int) (bool, error) {
+func Compress(w io.Writer, v interface{}) (bool, error) {
+	return CompressWitMinSize(w, v, defaultMinSize)
+}
+
+func CompressWitMinSize(w io.Writer, v interface{}, minSize int) (bool, error) {
 
 	gwc := newGzipWriteCloser(w, minSize)
 
@@ -40,7 +49,7 @@ func CompressWitMinhSize(w io.Writer, v interface{}, minSize int) (bool, error) 
 
 func newGzipWriteCloser(w io.Writer, minSize int) *GzipWriteCloser {
 
-	ms := DefaultMinSize
+	ms := defaultMinSize
 
 	if minSize > -1 {
 		ms = minSize
@@ -66,7 +75,10 @@ func (gwc *GzipWriteCloser) Write(b []byte) (int, error) {
 		return len(b), nil
 	} else {
 		gwc.compressed = true
-		gwc.gw = gzip.NewWriter(gwc.Writer)
+
+		//same as gwc.gw = gzip.NewWriter(gwc.Writer), but with pool
+		gwc.gw = gzipWriterPool.Get().(*gzip.Writer)
+		gwc.gw.Reset(gwc.Writer)
 
 		return gwc.gw.Write(gwc.buf)
 	}
@@ -79,7 +91,14 @@ func (gwc *GzipWriteCloser) Close() error {
 		return gwc.doNotGzip()
 	}
 
-	return gwc.gw.Close()
+	err := gwc.gw.Close()
+	if err != nil {
+		return errors.Wrap(err, errors.New("unable to close gzip writer"))
+	}
+
+	gzipWriterPool.Put(gwc.gw)
+
+	return nil
 }
 
 func (gwc *GzipWriteCloser) doNotGzip() error {
