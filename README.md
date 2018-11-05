@@ -1,8 +1,8 @@
 # GzipJSON
 
-Encodes JSON and compresses the output only if the it is large enough to exceed a given size. Per Default the size is 1400 bytes, which is a good value for webserver responses.
+Encodes JSON and compresses the output only if it exceeds a given size. Per Default the size is 1400 bytes, which is a good value for webserver responses.
 
-# Usage
+# Example Usage
 JSON object is big enough to be compressed. Outputs a compressed file 'file.gz'.
 ```
 type JsonPerson struct {
@@ -17,7 +17,6 @@ func main() {
 		log.Fatal("failed to create file", err.Error())
 	}
 
-    // make a big JSON object
 	ps := make([]Person, 0)
 	for i := 0; i < 100; i++ {
 		p := Person{
