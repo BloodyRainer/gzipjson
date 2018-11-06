@@ -22,8 +22,8 @@ type GzipWriteCloser struct {
 
 type Option struct {
 	MinSize              int
-	compressedCallback   func()
-	uncompressedCallback func()
+	CompressedCallback   func()
+	UncompressedCallback func()
 }
 
 var gzipWriterPool *sync.Pool
@@ -40,7 +40,7 @@ func init() {
 func Compress(w io.Writer, v interface{}) (bool, error) {
 	o := Option{
 		MinSize:            DefaultMinSize,
-		compressedCallback: nil,
+		CompressedCallback: nil,
 	}
 	return CompressWitOption(w, v, o)
 }
@@ -106,10 +106,10 @@ func (gwc *GzipWriteCloser) Close() error {
 		return gwc.doNotGzip()
 	}
 
-	if gwc.compressed && gwc.option.compressedCallback != nil{
-		gwc.option.compressedCallback()
-	} else if gwc.option.uncompressedCallback != nil {
-		gwc.option.uncompressedCallback()
+	if gwc.compressed && gwc.option.CompressedCallback != nil{
+		gwc.option.CompressedCallback()
+	} else if gwc.option.UncompressedCallback != nil {
+		gwc.option.UncompressedCallback()
 	}
 
 	err := gwc.gw.Close()
