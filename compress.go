@@ -8,7 +8,8 @@ import (
 	"sync"
 )
 
-const defaultMinSize = 1400
+// Content that has more bytes than DefaultMinSize is compressed if not configured otherwise.
+const DefaultMinSize = 1400
 
 type GzipWriteCloser struct {
 	io.Writer
@@ -16,12 +17,19 @@ type GzipWriteCloser struct {
 	buf            []byte
 	minContentSize int
 	compressed     bool
+	option         Option
+}
+
+type Option struct {
+	MinSize              int
+	compressedCallback   func()
+	uncompressedCallback func()
 }
 
 var gzipWriterPool *sync.Pool
 
 func init() {
-	gzipWriterPool = &sync.Pool {
+	gzipWriterPool = &sync.Pool{
 		New: func() interface{} {
 			return gzip.NewWriter(nil)
 		},
@@ -30,12 +38,16 @@ func init() {
 
 // Encodes the given reference to JSON and compresses it if the size exceeds 1400 Bytes.
 func Compress(w io.Writer, v interface{}) (bool, error) {
-	return CompressWitMinSize(w, v, defaultMinSize)
+	o := Option{
+		MinSize:            DefaultMinSize,
+		compressedCallback: nil,
+	}
+	return CompressWitOption(w, v, o)
 }
 
-func CompressWitMinSize(w io.Writer, v interface{}, minSize int) (bool, error) {
+func CompressWitOption(w io.Writer, v interface{}, o Option) (bool, error) {
 
-	gwc := newGzipWriteCloser(w, minSize)
+	gwc := newGzipWriteCloser(w, o)
 
 	if err := json.NewEncoder(gwc).Encode(v); err != nil {
 		return false, err
@@ -49,17 +61,18 @@ func CompressWitMinSize(w io.Writer, v interface{}, minSize int) (bool, error) {
 }
 
 // Encodes the given reference to JSON and compresses it if the size exceeds the given minSize value of bytes.
-func newGzipWriteCloser(w io.Writer, minSize int) *GzipWriteCloser {
+func newGzipWriteCloser(w io.Writer, o Option) *GzipWriteCloser {
 
-	ms := defaultMinSize
+	ms := DefaultMinSize
 
-	if minSize > -1 {
-		ms = minSize
+	if o.MinSize > -1 {
+		ms = o.MinSize
 	}
 
 	return &GzipWriteCloser{
 		Writer:         w,
 		minContentSize: ms,
+		option:         o,
 	}
 }
 
@@ -91,6 +104,12 @@ func (gwc *GzipWriteCloser) Close() error {
 	// gzip was not triggered (content too small)
 	if gwc.gw == nil {
 		return gwc.doNotGzip()
+	}
+
+	if gwc.compressed && gwc.option.compressedCallback != nil{
+		gwc.option.compressedCallback()
+	} else if gwc.option.uncompressedCallback != nil {
+		gwc.option.uncompressedCallback()
 	}
 
 	err := gwc.gw.Close()

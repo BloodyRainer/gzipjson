@@ -31,7 +31,7 @@ func TestGzipJsonUncompressed(t *testing.T) {
 	buf := new(bytes.Buffer)
 
 	// Act
-	c, err := CompressWitMinSize(buf, p, 1400)
+	c, err := Compress(buf, p)
 
 	// Assert
 	assert.Nil(t, err)
@@ -50,8 +50,12 @@ func TestGzipJsonCompressed(t *testing.T) {
 	const expect = `{"name":"Lenni Linux","hobbies":["gaming","youtube","eating","coding"]}`
 	bufCompressed := new(bytes.Buffer)
 
+	o := Option{
+		MinSize:0,
+	}
+
 	// Act
-	c, err := CompressWitMinSize(bufCompressed, p, 0)
+	c, err := CompressWitOption(bufCompressed, p, o)
 
 	// Assert
 	assert.Nil(t, err)
@@ -77,8 +81,12 @@ func TestGzipJsonCompressed2(t *testing.T) {
 	const expect = `{"age":44}`
 	bufCompressed := new(bytes.Buffer)
 
+	o := Option{
+		MinSize:0,
+	}
+
 	// Act
-	c, err := CompressWitMinSize(bufCompressed, p, 0)
+	c, err := CompressWitOption(bufCompressed, p, o)
 
 	// Assert
 	assert.Nil(t, err)
@@ -107,8 +115,12 @@ func TestGzipJsonCompressedMultiple(t *testing.T) {
 		expect := `{"name":"Lenni Linux","age":` + strconv.Itoa(i) + `}`
 		bufCompressed := new(bytes.Buffer)
 
+		o := Option{
+			MinSize:0,
+		}
+
 		// Act
-		c, err := CompressWitMinSize(bufCompressed, p, 0)
+		c, err := CompressWitOption(bufCompressed, p, o)
 
 		// Assert
 		assert.Nil(t, err)
@@ -130,6 +142,10 @@ func TestGzipJsonCompressedMultiple(t *testing.T) {
 func BenchmarkGzipJsonCompressedMultiple(b *testing.B) {
 	b.StopTimer()
 
+	o := Option{
+		MinSize:0,
+	}
+
 	for i := 1; i < b.N; i++ {
 		// Arrange
 		p := &Person{
@@ -142,7 +158,7 @@ func BenchmarkGzipJsonCompressedMultiple(b *testing.B) {
 
 		// Act
 		b.StartTimer()
-		c, err := CompressWitMinSize(bufCompressed, p, 0)
+		c, err := CompressWitOption(bufCompressed, p, o)
 		b.StopTimer()
 
 		assert.Nil(b, err)

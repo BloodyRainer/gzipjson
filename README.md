@@ -36,31 +36,3 @@ func main() {
 
 }
 ```
-
-JSON object is _not_ big enough to be compressed. Outputs a file 'file' that is _not_ compressed.
-
-```
-func main() {
-	f1, err := os.Create("file")
-	if err != nil {
-		log.Fatal("failed to create file", err.Error())
-	}
-
-	p := Person{
-		Name:       "Lenni Linux",
-		Age:        44,
-		Profession: "Software Developer",
-	}
-
-	c, err := gzipjson.Compress(f1, &p)
-	if err != nil {
-		log.Fatal("failed to gzip json", err.Error())
-	}
-
-	log.Println("is compressed: ", c) // is compressed: false
-
-}
-
-```
-
-You can configure the size yourself by using 'CompressWitMinSize' instead of 'Compress'.
